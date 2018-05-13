@@ -10,12 +10,9 @@ time_t timeReserved[10];
 time_t buttonTime;
 int reservedSpots[10];
 int colors[10][3]={ {255, 0, 0}, {0, 255, 0}, {0, 0, 255},
-                  {255, 255, 255},{255, 255, 0} , {128, 100, 50},
-                  {102, 0, 204}, {46, 151, 88}, {1, 255, 255}, 
+                  {255, 255, 255}, {102, 0, 204}, {128, 100, 50},
+                  {255, 255, 0}, {46, 151, 88}, {1, 255, 255}, 
                   {32, 97, 128} };
-uint8_t ledPins[10][3]={{44,45,46}, {A13,A14,A15}, {A10,A11,A12},
-                        {A7,A8,A9}, {A4,A5,A6}, {A1,A2,A3},
-                        {11,12,A0}, {8,9,10}, {5,6,7}, {2,3,4}};
 bool isButtonPressed=false;
 bool isSpaceAvailable=true;
 const int CUT_OFF_NUMBER=27;
@@ -99,10 +96,7 @@ void colorChase(uint32_t c, uint8_t wait, int spot) {
     lightStrip.setPixelColor(i, c); // Set new pixel 'on'
     lightStrip.show();              // Refresh LED states
     lightStrip.setPixelColor(i, 0); // Erase pixel, but don't refresh!
-    checkButton();
     delay(wait);
-    if(i==spot*2-1)
-      delay(100);
   }
 
   lightStrip.show(); // Refresh to turn off last pixel
@@ -115,7 +109,6 @@ void showStrip()
    {
      if(reservedSpots[x]!=-1)
      {
-      setColor(colors[x][0], colors[x][1], colors[x][2], reservedSpots[x]);
       colorChase(lightStrip.Color(colors[x][0], colors[x][1], colors[x][2]), 60, reservedSpots[x]+1);
       Serial.print("Spot");
       Serial.println(x);
@@ -128,21 +121,6 @@ void checkButton()
   if(digitalRead(13)==LOW&&now-buttonTime>5)
     isButtonPressed=true;
     
-}
-
-void setColor(int red, int green, int blue, uint8_t spot)
-{
-  
-  
-  #ifdef COMMON_ANODE
-    red = 255 - red;
-    green = 255 - green;
-    blue = 255 - blue;
-  #endif
-
-  analogWrite(ledPins[spot][0], red);
-  analogWrite(ledPins[spot][1], green);
-  analogWrite(ledPins[spot][2], blue);  
 }
 
 void loop() 
@@ -165,9 +143,8 @@ void loop()
      
       
       checkButton();
+      Serial.println("checking distance");
       //Check if there is car in spot by distance
-      if(x==3)
-        distance++;
       if(distance<CUT_OFF_NUMBER&&!lot[x].getTaken())
       {
         Serial.println("taken is true");
@@ -179,27 +156,25 @@ void loop()
           if(reservedSpots[y]==x)
           {
             reservedSpots[y]=-1;
-            setColor(0,0,0,x);
-            checkButton();
           }
         }
       }
-      checkButton();
+
        //Print for testing and debugging
       Serial.print(distance);
       Serial.print(" is the distance for spot ");
       Serial.print(x+1);
       Serial.print(lot[x].getReserved());
       Serial.println(lot[x].getTaken());
-      delay(1);
+      delay(1000);
       
       checkButton();
       
       //Label spot as not taken if there isn't a car in spot
-      if(distance>=CUT_OFF_NUMBER)
+      if(distance>CUT_OFF_NUMBER)
       {
         lot[x].setTaken(false);
-        checkButton();
+        checkButton;
       }
     }
     showStrip();
@@ -217,7 +192,7 @@ void loop()
     Serial.println(lot[x].getTaken());
     Serial.print("Reserved: ");
     Serial.println(lot[x].getReserved());
-    delay(1);
+    delay(5000);
 
     //If spot is found, break loop and set space available as true
     if(!lot[x].getTaken()&&!lot[x].getReserved())
@@ -226,7 +201,7 @@ void loop()
       Serial.print("Spot ");
       Serial.print(x+1);
       Serial.println(" is not Taken or Reserved");
-      delay(1);
+      delay(5000);
       isSpaceAvailable=true;
 
       //Adding spot to list of reserved spots
@@ -238,7 +213,7 @@ void loop()
           //Printing for testing and debugging
           Serial.print("Adding spot ");
           Serial.println(x+1);
-          delay(1);
+          delay(5000);
           reservedSpots[y]=x;
           lot[x].setReserved(true);
           isButtonPressed=false;
@@ -250,21 +225,20 @@ void loop()
 
     //If no spots are found, the value is set to false
     Serial.println("No spots are available");
-    delay(1);
+    delay(5000);
     isSpaceAvailable=false;
   }
 
   Serial.print("Is space available? ");
   Serial.println(isSpaceAvailable);
-  showStrip(); 
+  delay(5000);
+    
   //Restart loop() function if there are no spaces
   if(!isSpaceAvailable)
   {
     Serial.println("No available spots, restarting loop");
-    delay(1);
-    isButtonPressed=false;
-    
+    delay(5000);
+    return;
   }
 }
-
 
